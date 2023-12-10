@@ -23,6 +23,24 @@ nltk.download("stopwords")
 nltk.download("wordnet")
 nltk.download("omw-1.4")
 
+EMOTICONS_GLOVE = {
+  '<smile>': [':-]', '0:3', '8)', ":'-)", '>^_^<', '(^_^)', "(';')", ':*',
+    '(^^)/', ':)', ':>', '(*_*)', '(^^)v', '=3', ':}', ';^)', ':->', '^_^;',
+    '=)', '(^o^)', '*)', '(^.^)', '^_^', '\\o/', '^5', '(__)', '(#^.^#)', '0:)',
+    '(^^)', ';]', ':-*', ':^)', ':3', '(+_+)', ';)', ":')", '(:', ':-3', ':-}',
+    ';-)', ':-)', ':]', '*-)', 'o/\\o', '=]', '(^_-)', '8-)', ':o)', ':c)',
+    '(^_^)/', '(o.o)', ':o', '>:)', '8-0', ':-0', ';3', '>:3', '3:)', ':-o',
+    '}:)', 'o_0', '^^;', 'xx', 'xxx', '^o^', ':d', ' c:'],
+  '<lolface>': [':-p', ':p', ':b', ':-b', 'x-p', '=p'],
+  '<heart>': ['<3'],
+  '<neutralface>': ['=\\', '>:/', '(..)', '(._.)', ':-/', ':|', '>.<', ':-.',
+    "('_')", '=/', ':/', ':#', '(-_-)', 'o-o', 'o_o', ':$', '>:\\', ':@', ':-|',
+    '><>', '(-.-)', ':\\', '<+', ':-@'],
+  '<sadface>': [';(', '(~_~)', ':c', ':[', ':-&', ':(', '>:[', ':&', ':-c',
+    ';n;', ":'(", ';;', ':-[', ';-;', '%)', ':<', '<\\3', ':{', ';_;', '=(',
+    'v.v', 'm(__)m', '</3', ":'-(", ':-<']
+}
+
 
 class PreprocessingUtils:
     def __init__(self):
@@ -298,3 +316,103 @@ class Preprocessing:
     @print_func_name
     def fillna(self):
         self.df["text"] = self.df["text"].filna("<empty-text>")
+
+
+    @print_func_name
+    def correct_spacing_indexing(self):
+        """
+        Deletes double or more spaces and corrects indexing.
+
+        Must be called after calling the above methods.
+        Most of the above methods just delete a token. However since tokens are
+        surrounded by whitespaces, they will often result in having more than one
+        space between words.
+
+        The only exception is for `remove_space_between_emoticons` method.
+        Should be called before and after calling that method.
+        It could exist ':  )' which that method doesn't recognize.
+        """
+
+        print("Correcting spacing...")
+
+        # Removing double spaces
+        self.df["text"] = self.df["text"].str.replace("\s{2,}", " ")
+
+        # Stripping text
+        self.df["text"] = self.df["text"].apply(lambda text: text.strip())
+
+        # Correcting the indexing
+        self.df.reset_index(inplace=True, drop=True)
+
+    @print_func_name
+    def remove_space_between_emoticons(self):
+        """
+        Removes spaces between emoticons (e.g.: ': )' --> ':)').
+        Adds a space between a word and an emoticon (e.g.: 'hello:)' --> 'hello :)')
+        """
+
+        print("Removing space between emoticons...")
+
+        # Getting list of all emoticons
+        emo_list = [el for value in list(EMOTICONS_GLOVE.values()) for el in value]
+
+        # Putting a space between each character in each emoticon
+        emo_with_spaces = "|".join(re.escape(" ".join(emo)) for emo in emo_list)
+
+        # Getting all emoticons that don't contain any alphanumeric character
+        all_non_alpha_emo = "|".join(
+            re.escape(emo)
+            for emo in emo_list
+            if not any(char.isalpha() or char.isdigit() for char in emo)
+        )
+
+        # Removing spaces between emoticons
+        self.df["text"] = self.df["text"].str.replace(
+            emo_with_spaces, lambda t: t.group().replace(" ", ""), regex=True
+        )
+
+        # Adding space between a word and an emoticon
+        self.df["text"] = self.df["text"].str.replace(
+            rf"({all_non_alpha_emo})", r" \1 ", regex=True
+        )
+
+    @print_func_name
+    def emoticons_to_tags(self):
+        # Dictionary like {tag:[list_of_emoticons]}
+        union_re = {}
+        for tag, emo_list in EMOTICONS_GLOVE.items():
+            # Getting emoticons as they are
+            re_emo = "|".join(re.escape(emo) for emo in emo_list)
+            union_re[tag] = re_emo
+
+        # Function to be called for each tweet
+        def _inner(text, _union_re):
+            for tag, union_re in _union_re.items():
+                text = re.sub(union_re, " " + tag + " ", text)
+            return text
+
+        # Applying for each tweet
+        self.df["text"] = self.df["text"].apply(lambda x: _inner(str(x), union_re))
+
+    @print_func_name
+    def hashtags_to_tags(self):
+        """
+        Convert hashtags. (e.g.: #hello ---> <hashtag> hello)
+        """
+
+        print("Converting hashtags to tags...")
+        self.df["text"] = self.df["text"].str.replace(
+            r"#(\S+)", r"<hashtag> \1"
+        )
+
+    @print_func_name
+    def repeat_to_tags(self):
+        """
+        Convert repetitions of '!' or '?' or '.' into tags.
+          (e.g.: ... ---> . <repeat>)
+        """
+
+        print("Converting repetitions of symbols to tags...")
+        self.__data["text"] = self.__data["text"].str.replace(
+            r"([!?.]){2,}", r"\1 <repeat>"
+        )
