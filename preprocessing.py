@@ -90,20 +90,28 @@ class PreprocessingUtils:
 
     def correct_spelling(self, text):
         """
-        Corrects the spelling of a word (e.g.: helo -> hello)
+        Corrects the spelling of words in the text. Skips single character words.
 
-        :param text: Text to be converted
+        :param text: Text to be corrected
         :type text: str
         :return: Processed text
         :rtype: str
         """
-        # `max_edit_distance = 2` tells `SymSpell` to check at a maximum distance
-        # of 2 in the vocabulary. Only words with at most 2 letters wrong will be corrected.
-        result = self._get_symspell().lookup_compound(
-            text, max_edit_distance=2
-        )
+        words = text.split()
+        corrected_words = []
 
-        return result[0].term
+        for word in words:
+            # Skip correction if the word is a single character
+            if len(word) <= 1:
+                corrected_words.append(word)
+                continue
+
+            # Perform correction for words with more than one character
+            result = self._get_symspell().lookup_compound(word, max_edit_distance=1)
+            corrected_words.append(result[0].term)
+
+        return ' '.join(corrected_words)
+
 
     def _get_wordnet_tag(self, nltk_tag):
         """
@@ -279,6 +287,10 @@ class Preprocessing:
         self.df["text"] = self.df["text"].progress_apply(self._prep_utils.lemmatize)
 
     @print_func_name
+    def word_segmentation(self):
+        self.df["text"] = self.df["text"].progress_apply(self._prep_utils.word_segmentation)
+
+    @print_func_name
     def correct_spelling(self):
         self.df["text"] = self.df["text"].progress_apply(self._prep_utils.correct_spelling)
 
@@ -413,6 +425,50 @@ class Preprocessing:
         """
 
         print("Converting repetitions of symbols to tags...")
-        self.__data["text"] = self.__data["text"].str.replace(
+        self.df["text"] = self.df["text"].str.replace(
             r"([!?.]){2,}", r"\1 <repeat>"
         )
+
+    @print_func_name
+    def remove_selected_characters(self):
+        """
+        Remove selected characters from the text.
+        """
+
+        print("Removing selected characters...")
+        self.df["text"] = self.df["text"].str.replace(
+            r'[^a-zA-Z0-9.!\-()]', ' ', regex=True
+        )
+
+    @print_func_name
+    def remove_parentheses(self):
+        """
+        :rtype: None
+        """
+        def remove_parentheses_from_sentence(s):
+            """
+            :type s: str
+            :rtype: str
+            """
+            result = ""
+            i = 0
+            while i < len(s):
+                if s[i] == "(":
+                    j = i
+                    while j < len(s) and s[j] != ")":
+                        if s[j] == "(":
+                            result += s[i:j]
+                            i = j
+                        j += 1
+                    if j < len(s) and s[j] == ")":
+                        result += s[i+1:j]
+                        i = j + 1
+                    else:
+                        result += s[i]
+                        i += 1
+                else:
+                    result += s[i]
+                    i += 1
+            return result
+
+        self.df["text"] = self.df["text"].apply(remove_parentheses_from_sentence)
