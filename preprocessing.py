@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import spacy
+
 from tqdm import tqdm
 
 import nltk
@@ -82,11 +84,19 @@ class PreprocessingUtils:
         :return: Processed text
         :rtype: str
         """
-        # `max_edit_distance = 0` avoids that `SymSpell` corrects spelling.
-        result = self._get_symspell().word_segmentation(
-            text, max_edit_distance=0
-        )
-        return result.segmented_string
+        words = text.split()
+        segmented_words = []
+
+        for word in words:
+            # Check if the word contains at least 7 characters
+            if len(word) >= 7:
+                # Apply word segmentation
+                result = self._get_symspell().word_segmentation(word, max_edit_distance=0)
+                segmented_words.append(result.segmented_string)
+            else:
+                segmented_words.append(word)
+
+        return ' '.join(segmented_words)
 
     def correct_spelling(self, text):
         """
@@ -162,6 +172,8 @@ class Preprocessing:
         self._is_test = is_test
         self.df = self._load_data(path_ls)
         self._prep_utils = PreprocessingUtils()
+        self.nlp = spacy.load("en_core_web_sm")  # Load spaCy model once during initialization
+
 
     def _load_data(self, path_ls):
         if len(path_ls) == 1 and self._is_test:
@@ -439,6 +451,34 @@ class Preprocessing:
         self.df["text"] = self.df["text"].str.replace(
             r'[^a-zA-Z0-9.!\-()]', ' ', regex=True
         )
+
+    @print_func_name
+    def numbers_to_tags(self):
+        """
+        Convert numbers into tags. (e.g.: 34 ---> <number>)
+        Adds a space before and after the tag to ensure it is separated from other text.
+        """
+        # Replace numbers with <number> tag and add spaces around the tag
+        self.df["text"] = self.df["text"].str.replace(
+            r"([-+]?[.\d]*[\d]+[:,.\d]*)", r" <number> ", regex=True
+        )
+
+
+    @print_func_name
+    def replace_entities_with_tags(self):
+        # Define a function that will be applied to each text entry
+        def replace_entities(text, nlp):
+            doc = nlp(text)
+            # Perform replacements
+            for ent in reversed(doc.ents):
+                if ent.label_ == "PERSON":
+                    text = text[:ent.start_char] + '<firstname>' + text[ent.end_char:]
+                elif ent.label_ in {"GPE", "LOC"}:
+                    text = text[:ent.start_char] + '<city_or_country>' + text[ent.end_char:]
+            return text
+
+        # Apply the replace_entities function to each row in the DataFrame
+        self.df['text'] = self.df['text'].apply(replace_entities, nlp=self.nlp)
 
     @print_func_name
     def remove_parentheses(self):
