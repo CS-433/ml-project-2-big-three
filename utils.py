@@ -49,12 +49,28 @@ def load_full_data(path_neg_dataset='twitter-datasets/train_neg_full.txt', path_
     return load_data(path_neg_dataset, path_pos_dataset)
 
 
-def load_test_data():
+def load_preprocessed_data(path_train_dataset='twitter-datasets/train_preprocessed_full.txt'):
+    # Initialize empty lists to store the lines from the files
+    train = []
+
+    # File paths for the datasets
+    train_file = path_train_dataset
+
+    # Read lines from 'train_neg' dataset and store them in train_neg_lines
+    with open(train_file, 'r', encoding='utf-8') as file:
+        for line in file:
+            train.append(line.strip())  # Remove newline characters
+
+    df_train = pd.DataFrame(train, columns=['text','label'])
+
+    return df_train
+
+def load_test_data(path_test_dataset='twitter-datasets/test_data.txt'):
     # Initialize empty lists to store the lines from the files
     test = []
 
     # File paths for the datasets
-    test_file = 'test_data.txt'
+    test_file = path_test_dataset
 
     # Read lines from 'train_neg' dataset and store them in train_neg_lines
     with open(test_file, 'r', encoding='utf-8') as file:
