@@ -130,8 +130,7 @@ class PreprocessingUtils:
             # This is the default in WordNetLemmatizer when no pos tag is passed
             return wordnet.NOUN
 
-    @staticmethod
-    def lemmatize(text):
+    def lemmatize(self, text):
         """
         Performs lemmatization using nltk pos tag and `WordNetLemmatizer`.
 
@@ -287,8 +286,7 @@ class Preprocessing:
 
         def _add_colon(text) -> str:
             unmatched_indices = _find_unmatched_parentheses(text)
-            print(unmatched_indices)
-            if not unmatched_indices:
+            if len(unmatched_indices) == 0:
                 return text
 
             char_t = list(text)

@@ -52,12 +52,12 @@ class Bert(Model):
 
         self.submit(predictions)
 
-    def create_tf_dataset(self, data: list):
+    def create_tf_dataset(self, x, y):
         features = []
 
-        for sample in tqdm(data, desc="Tokenizing samples"):
+        for text, label in tqdm(zip(x, y), desc="Tokenizing data", total=len(x)):
             input_dict = self.tokenizer.encode_plus(
-                sample[0],
+                text,
                 add_special_tokens=True,
                 max_length=self.max_length,
                 padding="max_length",
@@ -73,7 +73,7 @@ class Bert(Model):
             features.append(
                 InputFeatures(
                     input_ids=input_ids, attention_mask=attention_mask,
-                    label=sample.label
+                    label=label
                 )
             )
 
@@ -101,23 +101,23 @@ class Bert(Model):
         )
 
     def train(self, x, y, batch_size: int, epochs: int):
-        X_train, X_test, y_train, y_test = self.split_data(x, y, test_size=0.1)
+        X_train, X_val, y_train, y_val = self.split_data(x, y, test_size=0.1)
 
-        train_ie = []
-        for text, label in tqdm(zip(X_train, y_train), desc="Creating `InputExample` for training"):
-            train_ie.append(
-                InputExample(guid="", text_a=text, text_b=None, label=label))
+        # train_ie = []
+        # for text, label in tqdm(zip(X_train, y_train), desc="Creating `InputExample` for training"):
+        #     train_ie.append(
+        #         InputExample(guid="", text_a=text, text_b=None, label=label))
 
-        val_ie = []
-        for text, label in tqdm(zip(X_test, y_test), desc="Creating `InputExample` for validating"):
-            val_ie.append(
-                InputExample(guid="", text_a=text, text_b=None, label=label))
+        # val_ie = []
+        # for text, label in tqdm(zip(X_test, y_test), desc="Creating `InputExample` for validating"):
+        #     val_ie.append(
+        #         InputExample(guid="", text_a=text, text_b=None, label=label))
 
-        train_data = self.create_tf_dataset(train_ie).shuffle(self.max_length // 2,
-                                                              reshuffle_each_iteration=True).batch(batch_size)
-        val_data = self.create_tf_dataset(val_ie).batch(batch_size)
+        train_data = self.create_tf_dataset(X_train, y_train).shuffle(self.max_length // 2,
+                                                                      reshuffle_each_iteration=True).batch(batch_size)
+        val_data = self.create_tf_dataset(X_val, y_val).batch(batch_size)
 
-        steps_per_epoch = len(train_ie) // batch_size
+        steps_per_epoch = len(X_train) // batch_size
         num_train_steps = steps_per_epoch * epochs
 
         print(f"Training steps: {num_train_steps}")
