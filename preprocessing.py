@@ -23,6 +23,24 @@ nltk.download("stopwords")
 nltk.download("wordnet")
 nltk.download("omw-1.4")
 
+EMOTICONS_GLOVE = {
+    '<smile>': [':-]', '0:3', '8)', ":'-)", '>^_^<', '(^_^)', "(';')", ':*',
+                '(^^)/', ':)', ':>', '(*_*)', '(^^)v', '=3', ':}', ';^)', ':->', '^_^;',
+                '=)', '(^o^)', '*)', '(^.^)', '^_^', '\\o/', '^5', '(__)', '(#^.^#)', '0:)',
+                '(^^)', ';]', ':-*', ':^)', ':3', '(+_+)', ';)', ":')", '(:', ':-3', ':-}',
+                ';-)', ':-)', ':]', '*-)', 'o/\\o', '=]', '(^_-)', '8-)', ':o)', ':c)',
+                '(^_^)/', '(o.o)', ':o', '>:)', '8-0', ':-0', ';3', '>:3', '3:)', ':-o',
+                '}:)', 'o_0', '^^;', 'xx', 'xxx', '^o^', ':d', ' c:'],
+    '<lolface>': [':-p', ':p', ':b', ':-b', 'x-p', '=p'],
+    '<heart>': ['<3'],
+    '<neutralface>': ['=\\', '>:/', '(..)', '(._.)', ':-/', ':|', '>.<', ':-.',
+                      "('_')", '=/', ':/', ':#', '(-_-)', 'o-o', 'o_o', ':$', '>:\\', ':@', ':-|',
+                      '><>', '(-.-)', ':\\', '<+', ':-@'],
+    '<sadface>': [';(', '(~_~)', ':c', ':[', ':-&', ':(', '>:[', ':&', ':-c',
+                  ';n;', ":'(", ';;', ':-[', ';-;', '%)', ':<', '<\\3', ':{', ';_;', '=(',
+                  'v.v', 'm(__)m', '</3', ":'-(", ':-<']
+}
+
 
 class PreprocessingUtils:
     def __init__(self):
@@ -61,6 +79,7 @@ class PreprocessingUtils:
 
         :param text: Text to be converted (typically a hashtag)
         :type text: str
+
         :return: Processed text
         :rtype: str
         """
@@ -76,6 +95,7 @@ class PreprocessingUtils:
 
         :param text: Text to be converted
         :type text: str
+
         :return: Processed text
         :rtype: str
         """
@@ -87,12 +107,14 @@ class PreprocessingUtils:
 
         return result[0].term
 
-    def _get_wordnet_tag(self, nltk_tag):
+    @staticmethod
+    def _get_wordnet_tag(nltk_tag):
         """
         Returns the type of word according to the nltk pos tag.
 
         :param nltk_tag: nltk pos tag
         :type nltk_tag: list(tuple(str, str))
+
         :return: type of word
         :rtype: str
         """
@@ -108,7 +130,8 @@ class PreprocessingUtils:
             # This is the default in WordNetLemmatizer when no pos tag is passed
             return wordnet.NOUN
 
-    def lemmatize(self, text):
+    @staticmethod
+    def lemmatize(text):
         """
         Performs lemmatization using nltk pos tag and `WordNetLemmatizer`.
 
@@ -134,23 +157,25 @@ class Preprocessing:
             raise ValueError("Length of path should be 1 or 2.")
 
         self._is_test = is_test
-        self.df = self._load_data(path_ls)
+        self._path_ls = path_ls
         self._prep_utils = PreprocessingUtils()
 
-    def _load_data(self, path_ls):
-        if len(path_ls) == 1 and self._is_test:
-            return self._load_test_data(path_ls[0])
-        else:
-            return self._load_train_data(path_ls)
+        self.df = self._load_data()
 
-    def _load_train_data(self, path_ls):
-        if len(path_ls) == 1 and path_ls[0].find("csv") != -1:
-            return pd.read_csv(path_ls[0])
+    def _load_data(self):
+        if len(self._path_ls) == 1 and self._is_test:
+            return self._load_test_data()
+        else:
+            return self._load_train_data()
+
+    def _load_train_data(self):
+        if len(self._path_ls) == 1 and self._path_ls[0].find("csv") != -1:
+            return pd.read_csv(self._path_ls[0])
 
         is_neg = -1
         dfs = []
 
-        for path in path_ls:
+        for path in self._path_ls:
             if "neg" not in path:
                 is_neg = 1
             with open(path) as f:
@@ -164,8 +189,8 @@ class Preprocessing:
         df["label"] = df["label"].astype("int64")
         return df
 
-    def _load_test_data(self, path):
-        with open(path) as f:
+    def _load_test_data(self):
+        with open(self._path_ls[0]) as f:
             content = f.read().splitlines()
 
         ids = [line.split(",")[0] for line in content]
@@ -175,7 +200,6 @@ class Preprocessing:
         df["text"] = df["text"].str.lower()
         return df
 
-    @print_func_name
     def __get__(self) -> pd.DataFrame:
         return self.df
 
@@ -198,22 +222,33 @@ class Preprocessing:
     @print_func_name
     def remove_tag(self):
         self.df["text"] = self.df["text"].str.replace("<[\w]*>", "", regex=True)
+        self.strip()
 
     @print_func_name
     def remove_space_before_symbol(self):
-        def _find_pattern(text):
-            pattern = r'\s+([!@#$%^&*()_+\-=\[\]{};:\'",.<>?/\\|])'
-            return re.sub(pattern, r'\1', text)
+        emo_list = [el for value in list(EMOTICONS_GLOVE.values()) for el in value]
+        emo_with_spaces_pattern = re.compile('|'.join(re.escape(' '.join(emo)) for emo in emo_list))
+        all_non_alpha_emo_pattern = re.compile(
+            '|'.join(re.escape(emo) for emo in emo_list if not any(char.isalpha() or char.isdigit() for char in emo)))
 
-        self.df["text"] = self.df["text"].progress_apply(_find_pattern)
+        # Define a function to handle replacement
+        def _replace_func(match):
+            text = match.group()
+            if emo_with_spaces_pattern.match(text):
+                return text.replace(" ", "")
+            return f' {text} '
+
+        # Applying the transformations
+        self.df["text"] = self.df["text"].progress_apply(lambda x: re.sub(all_non_alpha_emo_pattern, _replace_func, x))
 
     @print_func_name
     def remove_extra_space(self):
-        self.df["text"] = self.df["text"].str.replace("\s{2,}", " ", regex=True)
+        self.df["text"] = self.df["text"].progress_apply(lambda text: " ".join(text.split()))
+        self.df.reset_index(inplace=True, drop=True)
 
     @print_func_name
     def remove_ellipsis(self):
-        self.df["text"] = self.df["text"].str.replace(r'\.{2}$', '', regex=True)
+        self.df["text"] = self.df["text"].str.replace(r'\.{3}$', '', regex=True)
 
     @print_func_name
     def remove_hashtag(self):
@@ -229,32 +264,46 @@ class Preprocessing:
         self.df["text"] = self.df["text"].progress_apply(_find_pattern)
 
     @print_func_name
-    def reconstruct_emoji(self, is_bert: bool = True):
-        def _find_symbol(text):
-            pattern = r"\s*([()])\s*"
-            return re.sub(pattern, r" :\1" if text.count("(") != text.count(")") else r"\1 ", text)
+    def reconstruct_emoji(self):
+        print("inside")
 
-        def _find_reconstruct_symbol(text) -> str:
-            # Define a regular expression pattern to match emoticons
-            pattern = r'(:\(|:\))'
+        def _find_unmatched_parentheses(text):
+            open_stack = []  # Stack to keep track of indices of '('
+            unmatched_indices = []  # List to store indices of unmatched parentheses
 
-            if is_bert:
-                # Replace :) with "smile" and :( with "sad face"
-                result = re.sub(r':\)', 'smile ', text)
-                result = re.sub(r':\(', 'sad face ', result)
-            else:
-                # Use re.sub() to replace emoticons with emoticon + space
-                result = re.sub(pattern, r'\1 ', text)
+            for i, char in enumerate(text):
+                if char == '(':
+                    open_stack.append(i)  # Push the index of '(' onto the stack
+                elif char == ')':
+                    if open_stack:
+                        open_stack.pop()  # Pop the last '(' as it's a matched pair
+                    else:
+                        unmatched_indices.append(i)  # Unmatched ')'
 
-            return result
+            # Add remaining indices from the stack to unmatched_indices
+            unmatched_indices.extend(open_stack)
 
-        self.df["text"] = self.df["text"].progress_apply(_find_symbol)
-        self.df["text"] = self.df["text"].progress_apply(_find_reconstruct_symbol)
+            return sorted(unmatched_indices)
+
+        def _add_colon(text) -> str:
+            unmatched_indices = _find_unmatched_parentheses(text)
+            print(unmatched_indices)
+            if not unmatched_indices:
+                return text
+
+            char_t = list(text)
+
+            for i, index in enumerate(unmatched_indices):
+                char_t.insert(index + i, ':')
+
+            return "".join(char_t)
+
+        self.df["text"] = self.df["text"].progress_apply(_add_colon)
 
     @print_func_name
     def drop_duplicates(self):
-        self.df = self.df.drop_duplicates().reset_index(drop=True)
-        # self.df = self.df.dropna()
+        self.df = self.df.drop_duplicates(subset=['text'])
+        self.df = self.df.dropna().reset_index(drop=True)
 
     @print_func_name
     def lemmatize(self):
