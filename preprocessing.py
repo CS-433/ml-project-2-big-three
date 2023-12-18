@@ -12,10 +12,10 @@ from symspellpy import SymSpell
 import re
 
 from utility.decorators import print_func_name
-from utility.paths import UtilityPath, DataPath
+from utility.paths import UtilityPath
 
 # Setup tqdm verbose
-tqdm.pandas()
+tqdm.pandas(leave=True, position=0)
 
 # Setup nltk weights
 nltk.download("averaged_perceptron_tagger")
@@ -23,7 +23,7 @@ nltk.download("stopwords")
 nltk.download("wordnet")
 nltk.download("omw-1.4")
 
-EMOTICONS_GLOVE = {
+EMOJI_GLOVE = {
     '<smile>': [':-]', '0:3', '8)', ":'-)", '>^_^<', '(^_^)', "(';')", ':*',
                 '(^^)/', ':)', ':>', '(*_*)', '(^^)v', '=3', ':}', ';^)', ':->', '^_^;',
                 '=)', '(^o^)', '*)', '(^.^)', '^_^', '\\o/', '^5', '(__)', '(#^.^#)', '0:)',
@@ -171,7 +171,7 @@ class Preprocessing:
         if len(self._path_ls) == 1 and self._path_ls[0].find("csv") != -1:
             return pd.read_csv(self._path_ls[0])
 
-        is_neg = -1
+        is_neg = 0
         dfs = []
 
         for path in self._path_ls:
@@ -185,7 +185,7 @@ class Preprocessing:
 
         df = pd.concat(dfs, ignore_index=True)
         df["text"] = df["text"].str.lower()
-        df["label"] = df["label"].astype("int64")
+        df["label"] = df["label"].astype("float64")
         return df
 
     def _load_test_data(self):
@@ -224,30 +224,31 @@ class Preprocessing:
         self.strip()
 
     @print_func_name
-    def remove_space_before_symbol(self):
-        emo_list = [el for value in list(EMOTICONS_GLOVE.values()) for el in value]
-        emo_with_spaces_pattern = re.compile('|'.join(re.escape(' '.join(emo)) for emo in emo_list))
-        all_non_alpha_emo_pattern = re.compile(
-            '|'.join(re.escape(emo) for emo in emo_list if not any(char.isalpha() or char.isdigit() for char in emo)))
+    def remove_space_around_emoji(self):
+        emo_list = [el for value in list(EMOJI_GLOVE.values()) for el in value]
+        emo_with_spaces = '|'.join(re.escape(' '.join(emo)) for emo in emo_list)
+        all_non_alpha_emo = '|'.join(re.escape(emo) for emo in emo_list if not any(
+            char.isalpha() or char.isdigit() for char in emo))
 
-        # Define a function to handle replacement
-        def _replace_func(match):
-            text = match.group()
-            if emo_with_spaces_pattern.match(text):
-                return text.replace(" ", "")
-            return f' {text} '
+        # Removing spaces between emojis
+        self.df["text"] = self.df["text"].str.replace(emo_with_spaces, lambda t: t.group().replace(' ', ''), regex=True)
 
-        # Applying the transformations
-        self.df["text"] = self.df["text"].progress_apply(lambda x: re.sub(all_non_alpha_emo_pattern, _replace_func, x))
+        # Adding space between a word and an emoticon
+        self.df["text"] = self.df["text"].str.replace(rf'({all_non_alpha_emo})', r' \1 ', regex=True)
 
     @print_func_name
     def remove_extra_space(self):
-        self.df["text"] = self.df["text"].progress_apply(lambda text: " ".join(text.split()))
+        self.df["text"] = self.df["text"].str.replace(r'\s{2,}', ' ', regex=True)
+        self.df["text"] = self.df["text"].progress_apply(lambda text: text.strip())
         self.df.reset_index(inplace=True, drop=True)
 
     @print_func_name
     def remove_ellipsis(self):
-        self.df["text"] = self.df["text"].str.replace(r'\.{3}$', '', regex=True)
+        self.df["text"] = self.df["text"].str.replace(r"\.{3}$", "", regex=True)
+
+    @print_func_name
+    def remove_ending(self):
+        self.df["text"] = self.df["text"].str.replace(r"\.{3} <url>$", "", regex=True)
 
     @print_func_name
     def remove_hashtag(self):
@@ -264,7 +265,6 @@ class Preprocessing:
 
     @print_func_name
     def reconstruct_emoji(self):
-        print("inside")
 
         def _find_unmatched_parentheses(text):
             open_stack = []  # Stack to keep track of indices of '('
@@ -299,6 +299,11 @@ class Preprocessing:
         self.df["text"] = self.df["text"].progress_apply(_add_colon)
 
     @print_func_name
+    def reconstruct_last_emoji(self):
+        self.df["text"] = self.df["text"].str.replace(r'\)+$', ' <smile> ', regex=True)
+        self.df["text"] = self.df["text"].str.replace(r'\(+$', ' <sadface> ', regex=True)
+
+    @print_func_name
     def drop_duplicates(self):
         self.df = self.df.drop_duplicates(subset=['text'])
         self.df = self.df.dropna().reset_index(drop=True)
@@ -321,6 +326,39 @@ class Preprocessing:
                 [word for word in str(text).split() if word not in _stopwords]
             )
         )
+
+    @print_func_name
+    def emoji_to_tag(self):
+        union = {}
+        for tag, emo_list in EMOJI_GLOVE.items():
+            # Getting emoticons as they are
+            re_emo = '|'.join(re.escape(emo) for emo in emo_list)
+            union[tag] = re_emo
+
+        # Function to be called for each tweet
+        def _replace(text):
+            for _tag, _union in union.items():
+                text = re.sub(_union, f" {_tag} ", text)
+            return text
+
+        # Applying for each tweet
+        self.df["text"] = self.df["text"].progress_apply(_replace)
+
+    @print_func_name
+    def num_to_tag(self):
+        self.df["text"] = self.df["text"].str.replace(r'[-+]?[.\d]*[\d]+[:,.\d]*', r'<number>', regex=True)
+
+    @print_func_name
+    def hashtag_to_tag(self):
+        self.df["text"] = self.df["text"].str.replace(r'#(\S+)', r'<hashtag> \1', regex=True)
+
+    @print_func_name
+    def repeat_symbols_to_tag(self):
+        self.df["text"] = self.df["text"].str.replace(r'([!?.]){2,}', r'\1 <repeat>', regex=True)
+
+    @print_func_name
+    def elongate_to_tag(self):
+        self.df["text"] = self.df["text"].str.replace(r'\b(\S*?)(.)\2{2,}\b', r'\1\2 <elong>', regex=True)
 
     @print_func_name
     def slang_to_word(self):

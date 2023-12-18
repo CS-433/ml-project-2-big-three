@@ -25,11 +25,12 @@ class Model(ABC):
     def predict(self, x):
         pass
 
-    def split_data(self, x, y, test_size: float, shuffle: bool = True, **kwargs):
+    def split_data(self, x, y, test_size: float = 0.2, shuffle: bool = True, **kwargs):
         return train_test_split(x, y, test_size=test_size, shuffle=shuffle, random_state=self.seed, **kwargs)
 
     def submit(self, predictions: np.ndarray | list):
-        submission = pd.DataFrame({"Id": np.arange(len(predictions)), "Prediction": predictions})
-        submission = submission.astype(int).replace(0, -1)
+        submission = pd.DataFrame({"Id": np.arange(1, len(predictions) + 1), "Prediction": predictions})
+        submission["Prediction"] = submission["Prediction"].replace(0, -1)
+        submission = submission.astype(int)
 
         submission.to_csv(f"{self.submission_path}/submission_{strftime('%Y-%m-%d_%H:%M:%S')}.csv", index=False)

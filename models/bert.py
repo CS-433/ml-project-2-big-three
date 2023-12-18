@@ -1,7 +1,7 @@
 from models.base import Model
 
 from transformers import BertTokenizer, TFBertForSequenceClassification
-from transformers import InputExample, InputFeatures, AdamWeightDecay, WarmUp
+from transformers import InputFeatures, AdamWeightDecay, WarmUp
 import tensorflow as tf
 from keras import optimizers, losses, metrics
 
@@ -9,7 +9,7 @@ import numpy as np
 from tqdm.auto import tqdm
 
 
-class Bert(Model):
+class BERT(Model):
     def __init__(self,
                  weight_path: str = "",
                  submission_path: str = "",
@@ -33,7 +33,7 @@ class Bert(Model):
             "remove_ellipsis",
             "reconstruct_emoji",
             "remove_extra_space",
-            "remove_space_before_symbol",
+            "remove_space_around_emoji",
             "remove_extra_space"
         ]
 
@@ -143,6 +143,9 @@ class Bert(Model):
         metric = metrics.SparseCategoricalAccuracy("accuracy")
 
         self.model.compile(optimizer=optimizer, loss=loss, metrics=[metric])
+
+        print("Model summary")
+        print(self.model.summary())
 
         print("Fitting model")
         self.model.fit(train_data, epochs=epochs, validation_data=val_data)
