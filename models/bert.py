@@ -3,7 +3,7 @@ from models.base import Model
 from transformers import BertTokenizer, TFBertForSequenceClassification
 from transformers import InputFeatures, AdamWeightDecay, WarmUp
 import tensorflow as tf
-from keras import optimizers, losses, metrics
+from keras import optimizers, losses, metrics, callbacks
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -102,16 +102,6 @@ class BERT(Model):
     def train(self, x, y, batch_size: int, epochs: int):
         X_train, X_val, y_train, y_val = self.split_data(x, y, test_size=0.1)
 
-        # train_ie = []
-        # for text, label in tqdm(zip(X_train, y_train), desc="Creating `InputExample` for training"):
-        #     train_ie.append(
-        #         InputExample(guid="", text_a=text, text_b=None, label=label))
-
-        # val_ie = []
-        # for text, label in tqdm(zip(X_test, y_test), desc="Creating `InputExample` for validating"):
-        #     val_ie.append(
-        #         InputExample(guid="", text_a=text, text_b=None, label=label))
-
         train_data = self.create_tf_dataset(X_train, y_train).shuffle(self.max_length // 2,
                                                                       reshuffle_each_iteration=True).batch(batch_size)
         val_data = self.create_tf_dataset(X_val, y_val).batch(batch_size)
@@ -140,8 +130,13 @@ class BERT(Model):
 
         loss = losses.SparseCategoricalCrossentropy(from_logits=True)
         metric = metrics.SparseCategoricalAccuracy("accuracy")
+        checkpoint_callback = callbacks.ModelCheckpoint(
+            filepath=self.weight_path + "/epoch-{epoch:02d}",
+            save_weights_only=True,  # Set to False if you want to save the entire model
+            save_best_only=False,
+            save_freq='epoch')
 
-        self.model.compile(optimizer=optimizer, loss=loss, metrics=[metric])
+        self.model.compile(optimizer=optimizer, loss=loss, metrics=[metric], callbacks=[checkpoint_callback])
 
         print("Model summary")
         print(self.model.summary())

@@ -36,7 +36,7 @@ class Model(ABC):
     @abstractmethod
     def preprocessing(self, is_train: bool = True):
         """
-        Preprocessing methods to be used for different models
+        Preprocessing methods to be used for different models.
 
         :param is_train: whether to use train or test preprocessing methods
         :type is_train: bool. Default is True
@@ -72,7 +72,7 @@ class Model(ABC):
         :param x: input data (tweets)
         :type x: np.ndarray
         """
-        
+
         pass
 
     def split_data(self, x: np.ndarray, y: np.ndarray, test_size: float = 0.2, shuffle: bool = True, **kwargs) -> tuple:
