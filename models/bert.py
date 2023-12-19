@@ -62,7 +62,7 @@ class BERT(Model):
                 max_length=self.max_length,
                 padding="max_length",
                 return_attention_mask=True,
-                return_token_type_ids=True,
+                return_token_type_ids=False,
                 truncation=True
             )
 
@@ -83,7 +83,6 @@ class BERT(Model):
                     {
                         "input_ids": feature.input_ids,
                         "attention_mask": feature.attention_mask,
-                        "token_type_ids": feature.token_type_ids,
                     },
                     feature.label,
                 )
@@ -91,12 +90,12 @@ class BERT(Model):
         return tf.data.Dataset.from_generator(
             _generator,
             ({
-                 'input_ids': tf.int32,
-                 'attention_mask': tf.int32,
+                 "input_ids": tf.int32,
+                 "attention_mask": tf.int32,
              }, tf.int64),
             ({
-                 'input_ids': tf.TensorShape([None]),
-                 'attention_mask': tf.TensorShape([None]),
+                 "input_ids": tf.TensorShape([None]),
+                 "attention_mask": tf.TensorShape([None]),
              }, tf.TensorShape([]),),
         )
 
