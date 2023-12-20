@@ -20,7 +20,8 @@ class BERT(Model):
                  submission_path: str = "",
                  is_weight: bool = False,
                  seed: int = 42,
-                 max_length: int = 128):
+                 max_length: int = 128,
+                 pretrained_mode: str = "bert-base-uncased"):
         """
         Initialize the BERT model with specified parameters.
 
@@ -43,14 +44,14 @@ class BERT(Model):
         super().__init__(weight_path, submission_path, is_weight, seed)
 
         # Set pretrained tokenizer
-        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        self.tokenizer = BertTokenizer.from_pretrained(pretrained_mode)
         self.max_length = max_length
 
         # Load models
         if self.is_weight:
             self.model = TFBertForSequenceClassification.from_pretrained(self.weight_path)
         else:
-            self.model = TFBertForSequenceClassification.from_pretrained("bert-base-uncased")
+            self.model = TFBertForSequenceClassification.from_pretrained(pretrained_mode)
 
     def preprocessing(self, is_train: bool = True):
         """
@@ -246,4 +247,11 @@ class BERT(Model):
             predictions.append(output)
 
         # Save predictions
+        print("Saving predictions")
         self.submit(predictions)
+
+    def save_model(self, path: str):
+        
+        if not path:
+            path = self.weight_path
+        self.model.save_pretrained(self.weight_path)
