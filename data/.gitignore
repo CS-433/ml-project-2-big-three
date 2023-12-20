@@ -1,2 +1,4 @@
-# Ignore all files and directories
-/*
+# Ignore all files with .txt or .csv
+*.txt
+*.csv
+```

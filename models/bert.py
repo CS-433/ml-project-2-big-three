@@ -250,8 +250,4 @@ class BERT(Model):
         print("Saving predictions")
         self.submit(predictions)
 
-    def save_model(self, path: str):
-        
-        if not path:
-            path = self.weight_path
-        self.model.save_pretrained(self.weight_path)
+        print("Finished running!")
