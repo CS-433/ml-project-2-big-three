@@ -1,0 +1,11 @@
+# Ignore everything
+**
+
+# Except directories
+!*/
+
+# But ignore all files inside directories
+**/*
+
+# Allow .gitignore file
+!.gitignore
