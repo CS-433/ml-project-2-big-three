@@ -9,3 +9,4 @@ scikit-learn==1.3.2
 tqdm
 keras==2.15.0
 nltk==3.8.1
+gensim==4.3.2
