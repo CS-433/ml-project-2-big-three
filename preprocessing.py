@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import spacy
-
 from tqdm import tqdm
 
 import nltk
@@ -14,10 +13,10 @@ from symspellpy import SymSpell
 import re
 
 from utility.decorators import print_func_name
-from utility.paths import UtilityPath, DataPath
+from utility.paths import UtilityPath
 
 # Setup tqdm verbose
-tqdm.pandas()
+tqdm.pandas(leave=True, position=0)
 
 # Setup nltk weights
 nltk.download("averaged_perceptron_tagger")
@@ -25,22 +24,23 @@ nltk.download("stopwords")
 nltk.download("wordnet")
 nltk.download("omw-1.4")
 
-EMOTICONS_GLOVE = {
-  '<smile>': [':-]', '0:3', '8)', ":'-)", '>^_^<', '(^_^)', "(';')", ':*',
-    '(^^)/', ':)', ':>', '(*_*)', '(^^)v', '=3', ':}', ';^)', ':->', '^_^;',
-    '=)', '(^o^)', '*)', '(^.^)', '^_^', '\\o/', '^5', '(__)', '(#^.^#)', '0:)',
-    '(^^)', ';]', ':-*', ':^)', ':3', '(+_+)', ';)', ":')", '(:', ':-3', ':-}',
-    ';-)', ':-)', ':]', '*-)', 'o/\\o', '=]', '(^_-)', '8-)', ':o)', ':c)',
-    '(^_^)/', '(o.o)', ':o', '>:)', '8-0', ':-0', ';3', '>:3', '3:)', ':-o',
-    '}:)', 'o_0', '^^;', 'xx', 'xxx', '^o^', ':d', ' c:'],
-  '<lolface>': [':-p', ':p', ':b', ':-b', 'x-p', '=p'],
-  '<heart>': ['<3'],
-  '<neutralface>': ['=\\', '>:/', '(..)', '(._.)', ':-/', ':|', '>.<', ':-.',
-    "('_')", '=/', ':/', ':#', '(-_-)', 'o-o', 'o_o', ':$', '>:\\', ':@', ':-|',
-    '><>', '(-.-)', ':\\', '<+', ':-@'],
-  '<sadface>': [';(', '(~_~)', ':c', ':[', ':-&', ':(', '>:[', ':&', ':-c',
-    ';n;', ":'(", ';;', ':-[', ';-;', '%)', ':<', '<\\3', ':{', ';_;', '=(',
-    'v.v', 'm(__)m', '</3', ":'-(", ':-<']
+# Emojis taken from this link: https://en.wikipedia.org/wiki/List_of_emoticons. The tags are from GloVe embedding.
+EMOJI_GLOVE = {
+    '<smile>': [':-]', '0:3', '8)', ":'-)", '>^_^<', '(^_^)', "(';')", ':*',
+                '(^^)/', ':)', ':>', '(*_*)', '(^^)v', '=3', ':}', ';^)', ':->', '^_^;',
+                '=)', '(^o^)', '*)', '(^.^)', '^_^', '\\o/', '^5', '(__)', '(#^.^#)', '0:)',
+                '(^^)', ';]', ':-*', ':^)', ':3', '(+_+)', ';)', ":')", '(:', ':-3', ':-}',
+                ';-)', ':-)', ':]', '*-)', 'o/\\o', '=]', '(^_-)', '8-)', ':o)', ':c)',
+                '(^_^)/', '(o.o)', ':o', '>:)', '8-0', ':-0', ';3', '>:3', '3:)', ':-o',
+                '}:)', 'o_0', '^^;', 'xx', 'xxx', '^o^', ':d', ' c:'],
+    '<lolface>': [':-p', ':p', ':b', ':-b', 'x-p', '=p'],
+    '<heart>': ['<3'],
+    '<neutralface>': ['=\\', '>:/', '(..)', '(._.)', ':-/', ':|', '>.<', ':-.',
+                      "('_')", '=/', ':/', ':#', '(-_-)', 'o-o', 'o_o', ':$', '>:\\', ':@', ':-|',
+                      '><>', '(-.-)', ':\\', '<+', ':-@'],
+    '<sadface>': [';(', '(~_~)', ':c', ':[', ':-&', ':(', '>:[', ':&', ':-c',
+                  ';n;', ":'(", ';;', ':-[', ';-;', '%)', ':<', '<\\3', ':{', ';_;', '=(',
+                  'v.v', 'm(__)m', '</3', ":'-(", ':-<']
 }
 
 
@@ -81,6 +81,7 @@ class PreprocessingUtils:
 
         :param text: Text to be converted (typically a hashtag)
         :type text: str
+
         :return: Processed text
         :rtype: str
         """
@@ -100,10 +101,11 @@ class PreprocessingUtils:
 
     def correct_spelling(self, text):
         """
-        Corrects the spelling of words in the text. Skips single character words.
+        Corrects the spelling of a word (e.g.: helo -> hello)
 
-        :param text: Text to be corrected
+        :param text: Text to be converted
         :type text: str
+
         :return: Processed text
         :rtype: str
         """
@@ -122,13 +124,14 @@ class PreprocessingUtils:
 
         return ' '.join(corrected_words)
 
-
-    def _get_wordnet_tag(self, nltk_tag):
+    @staticmethod
+    def _get_wordnet_tag(nltk_tag):
         """
         Returns the type of word according to the nltk pos tag.
 
         :param nltk_tag: nltk pos tag
         :type nltk_tag: list(tuple(str, str))
+
         :return: type of word
         :rtype: str
         """
@@ -165,30 +168,50 @@ class PreprocessingUtils:
 
 
 class Preprocessing:
+    """
+    Class that performs preprocessing on a dataset.
+    """
+
     def __init__(self, path_ls: list, is_test: bool = False):
+        """
+        Initialize the class.
+
+        :param path_ls: list of paths to the dataset
+        :type path_ls: list(str)
+
+        :param is_test: whether the dataset is a test dataset or not
+        :type is_test: bool. Default is False
+        """
         if len(path_ls) > 2 or len(path_ls) < 1:
             raise ValueError("Length of path should be 1 or 2.")
 
         self._is_test = is_test
-        self.df = self._load_data(path_ls)
+        self._path_ls = path_ls
         self._prep_utils = PreprocessingUtils()
         self.nlp = spacy.load("en_core_web_sm")  # Load spaCy model once during initialization
+        self.df = self._load_data()
 
-
-    def _load_data(self, path_ls):
-        if len(path_ls) == 1 and self._is_test:
-            return self._load_test_data(path_ls[0])
+    def _load_data(self):
+        """
+        Loads the data from the path.
+        """
+        if len(self._path_ls) == 1 and self._is_test:
+            return self._load_test_data()
         else:
-            return self._load_train_data(path_ls)
+            return self._load_train_data()
 
-    def _load_train_data(self, path_ls):
-        if len(path_ls) == 1 and path_ls[0].find("csv") != -1:
-            return pd.read_csv(path_ls[0])
+    def _load_train_data(self):
+        """
+        Loads the training data from the path.
+        """
+        if len(self._path_ls) == 1 and self._path_ls[0].find("csv") != -1:
+            return pd.read_csv(self._path_ls[0])
 
-        is_neg = -1
+        # Flag to check if the dataset is negative or not
+        is_neg = 0
         dfs = []
 
-        for path in path_ls:
+        for path in self._path_ls:
             if "neg" not in path:
                 is_neg = 1
             with open(path) as f:
@@ -198,68 +221,146 @@ class Preprocessing:
             dfs.append(_df)
 
         df = pd.concat(dfs, ignore_index=True)
-        df["text"] = df["text"].str.lower()
-        df["label"] = df["label"].astype("int64")
+        df["text"] = df["text"].str.lower()  # Lower the text
+        df["label"] = df["label"].astype("float64")
         return df
 
-    def _load_test_data(self, path):
-        with open(path) as f:
+    def _load_test_data(self):
+        """
+        Loads the test data from the path.
+        """
+        with open(self._path_ls[0]) as f:
             content = f.read().splitlines()
 
         ids = [line.split(",")[0] for line in content]
         texts = [",".join(line.split(",")[1:]) for line in content]
 
         df = pd.DataFrame({"ids": ids, "text": texts})
-        df["text"] = df["text"].str.lower()
+        df["text"] = df["text"].str.lower()  # Lower the text
         return df
 
-    @print_func_name
     def __get__(self) -> pd.DataFrame:
+        """
+        Returns the dataframe.
+        """
+
         return self.df
 
     @print_func_name
     def __len__(self) -> int:
+        """
+        Returns the length of the dataframe.
+
+        :return: length of the dataframe
+        :rtype: int
+        """
+
         return len(self.df)
 
     @print_func_name
     def shape(self) -> tuple:
+        """
+        Returns the shape of the dataframe.
+
+        :return: shape of the dataframe
+        :rtype: tuple
+        """
+
         return self.df.shape
 
     @print_func_name
     def create_raw(self):
+        """
+        Creates a column called `raw` which contains the original text.
+        """
+
         self.df["raw"] = self.df["text"]
 
     @print_func_name
     def strip(self):
+        """
+        Strips the text.
+        """
+
         self.df["text"] = self.df["text"].str.strip()
 
     @print_func_name
     def remove_tag(self):
-        self.df["text"] = self.df["text"].str.replace("<[\w]*>", "", regex=True)
+        """
+        Removes tags bounded by `<` and `>` from the text.
+        :return:
+        """
+
+        self.df["text"] = self.df["text"].str.replace(r"<[\w]*>", "", regex=True)
+
+        # Strip after remove tags
+        self.strip()
 
     @print_func_name
-    def remove_space_before_symbol(self):
-        def _find_pattern(text):
-            pattern = r'\s+([!@#$%^&*()_+\-=\[\]{};:\'",.<>?/\\|])'
-            return re.sub(pattern, r'\1', text)
+    def remove_space_around_emoji(self):
+        """
+        Removes spaces around emojis. (e.g.: " : ) " -> ":)")
+        Add space between a word and an emoji. (e.g.: "hello:)world" -> "hello :) world")
+        """
 
-        self.df["text"] = self.df["text"].progress_apply(_find_pattern)
+        emo_list = [el for value in list(EMOJI_GLOVE.values()) for el in value]
+
+        # Match spaced-out emojis in text
+        emo_with_spaces = '|'.join(re.escape(' '.join(emo)) for emo in emo_list)
+
+        # Match emojis in text that are symbolic
+        symbol_emo = '|'.join(re.escape(emo) for emo in emo_list if not any(
+            char.isalpha() or char.isdigit() for char in emo))
+
+        # Removing spaces between emojis
+        self.df["text"] = self.df["text"].str.replace(emo_with_spaces, lambda t: t.group().replace(' ', ''), regex=True)
+
+        # Adding space between a word and an emoticon
+        self.df["text"] = self.df["text"].str.replace(rf'({symbol_emo})', r' \1 ', regex=True)
 
     @print_func_name
     def remove_extra_space(self):
-        self.df["text"] = self.df["text"].str.replace("\s{2,}", " ", regex=True)
+        """
+        Removes extra spaces from the text.
+        """
+
+        self.df["text"] = self.df["text"].str.replace(r'\s{2,}', ' ', regex=True)
+        self.df["text"] = self.df["text"].progress_apply(lambda text: text.strip())
+        self.df.reset_index(inplace=True, drop=True)
 
     @print_func_name
     def remove_ellipsis(self):
-        self.df["text"] = self.df["text"].str.replace(r'\.{2}$', '', regex=True)
+        """
+        Removes ellipsis from the text.
+        """
+
+        self.df["text"] = self.df["text"].str.replace(r"\.{3}$", "", regex=True)
+
+    @print_func_name
+    def remove_ending(self):
+        """
+        Removes the ending similar to "... <url>" of the text.
+        """
+
+        self.df["text"] = self.df["text"].str.replace(r"\.{3} <url>$", "", regex=True)
 
     @print_func_name
     def remove_hashtag(self):
+        """
+        Removes hashtags from the text.
+        :return:
+        """
+
         self.df["text"] = self.df["text"].str.replace("#", " ")
         # self.df["text"] = self.df["text"].progress_apply(self._prep_utils._word_segmentation)
 
     @print_func_name
     def remove_space_after_quote(self):
+        """
+        Removes space after quote. (e.g.: "hello 'world' " -> "hello 'world'")
+        """
+
+        # Matching pattern
         def _find_pattern(text):
             pattern = r'(("[^"]*")|(\'[^\']*\'\s))'
             return re.sub(pattern, lambda match: match.group(1).replace(' ', ''), text)
@@ -267,47 +368,107 @@ class Preprocessing:
         self.df["text"] = self.df["text"].progress_apply(_find_pattern)
 
     @print_func_name
-    def reconstruct_emoji(self, is_bert: bool = True):
-        def _find_symbol(text):
-            pattern = r"\s*([()])\s*"
-            return re.sub(pattern, r" :\1" if text.count("(") != text.count(")") else r"\1 ", text)
+    def reconstruct_emoji(self):
+        """
+        Reconstructs emojis. (e.g.: ")" -> ":)")
+        """
 
-        def _find_reconstruct_symbol(text) -> str:
-            # Define a regular expression pattern to match emoticons
-            pattern = r'(:\(|:\))'
+        def _find_unmatched_parentheses(text: str) -> list:
+            """
+            Finds unmatched parentheses in a text.
+            :param text: Text to be processed
+            :type text: str
 
-            if is_bert:
-                # Replace :) with "smile" and :( with "sad face"
-                result = re.sub(r':\)', 'smile ', text)
-                result = re.sub(r':\(', 'sad face ', result)
-            else:
-                # Use re.sub() to replace emoticons with emoticon + space
-                result = re.sub(pattern, r'\1 ', text)
+            :return: List of indices of unmatched parentheses
+            :rtype: list
+            """
 
-            return result
+            open_stack = []  # Stack to keep track of indices of '('
+            unmatched_indices = []  # List to store indices of unmatched parentheses
 
-        self.df["text"] = self.df["text"].progress_apply(_find_symbol)
-        self.df["text"] = self.df["text"].progress_apply(_find_reconstruct_symbol)
+            for i, char in enumerate(text):
+                if char == '(':
+                    open_stack.append(i)  # Push the index of '(' onto the stack
+                elif char == ')':
+                    if open_stack:
+                        open_stack.pop()  # Pop the last '(' as it's a matched pair
+                    else:
+                        unmatched_indices.append(i)  # Unmatched ')'
+
+            # Add remaining indices from the stack to unmatched_indices
+            unmatched_indices.extend(open_stack)
+
+            return sorted(unmatched_indices)
+
+        def _add_colon(text: str) -> str:
+            """
+            Adds colon to unmatched parentheses.
+
+            :param text: Text to be processed
+            :type text: str
+
+            :return: Processed text
+            :rtype: str
+            """
+
+            unmatched_indices = _find_unmatched_parentheses(text)
+            if len(unmatched_indices) == 0:
+                return text
+
+            char_t = list(text)
+
+            for i, index in enumerate(unmatched_indices):
+                char_t.insert(index + i, ':')
+
+            return "".join(char_t)
+
+        self.df["text"] = self.df["text"].progress_apply(_add_colon)
+
+    @print_func_name
+    def reconstruct_last_emoji(self):
+        """
+        Reconstructs the last emoji. (e.g.: "hello )" -> "hello <smile>")
+        """
+
+        self.df["text"] = self.df["text"].str.replace(r'\)+$', ' <smile> ', regex=True)
+        self.df["text"] = self.df["text"].str.replace(r'\(+$', ' <sadface> ', regex=True)
 
     @print_func_name
     def drop_duplicates(self):
-        self.df = self.df.drop_duplicates().reset_index(drop=True)
-        # self.df = self.df.dropna()
+        """
+        Drops duplicates from the dataframe.
+        """
+
+        self.df = self.df.drop_duplicates(subset=['text'])
+        self.df = self.df.dropna().reset_index(drop=True)
 
     @print_func_name
     def lemmatize(self):
+        """
+        Performs lemmatization on the text.
+        """
+
         self.df["text"] = self.df["text"].progress_apply(self._prep_utils.lemmatize)
 
     @print_func_name
     def word_segmentation(self):
         self.df["text"] = self.df["text"].progress_apply(self._prep_utils.word_segmentation)
 
+
     @print_func_name
     def correct_spelling(self):
+        """
+        Corrects the spelling of the text.
+        """
+
         self.df["text"] = self.df["text"].progress_apply(self._prep_utils.correct_spelling)
 
     @print_func_name
     def remove_stopwords(self):
+        """
+        Removes stopwords from the text.
+        """
+
         _stopwords = set(stopwords.words("english"))
 
         # Removing stopwords for each tweet
@@ -318,11 +479,78 @@ class Preprocessing:
         )
 
     @print_func_name
+    def emoji_to_tag(self):
+        """
+        Replaces emojis with their tags. Tags are based on GloVe embedding.
+        """
+
+        union = {tag: '|'.join(re.escape(emo) for emo in emo_list) for tag, emo_list in EMOJI_GLOVE.items()}
+
+        # Function to be called for each tweet
+        def _replace(text: str) -> str:
+            """
+            Replaces emojis with their tags.
+            :param text: Text to be processed
+            :type text: str
+
+            :return: Processed text
+            :rtype: str
+            """
+            for _tag, _union in union.items():
+                text = re.sub(_union, f" {_tag} ", text)
+            return text
+
+        # Applying for each tweet
+        self.df["text"] = self.df["text"].progress_apply(_replace)
+
+    @print_func_name
+    def num_to_tag(self):
+        """
+        Replaces numbers with a tag.
+        """
+
+        self.df["text"] = self.df["text"].str.replace(r'[-+]?[.\d]*[\d]+[:,.\d]*', r'<number>', regex=True)
+
+    @print_func_name
+    def hashtag_to_tag(self):
+        """
+        Replaces hashtags with a tag.
+        """
+
+        self.df["text"] = self.df["text"].str.replace(r'#(\S+)', r'<hashtag> \1', regex=True)
+
+    @print_func_name
+    def repeat_symbols_to_tag(self):
+        """
+        Replaces repeated symbols with a tag.
+        """
+
+        self.df["text"] = self.df["text"].str.replace(r'([!?.]){2,}', r'\1 <repeat>', regex=True)
+
+    @print_func_name
+    def elongate_to_tag(self):
+        """
+        Replaces elongated words with a tag.
+        """
+
+        self.df["text"] = self.df["text"].str.replace(r'\b(\S*?)(.)\2{2,}\b', r'\1\2 <elong>', regex=True)
+
+    @print_func_name
     def slang_to_word(self):
-        # https://github.com/Zenexer/internet-reference/blob/main/Internet%20Slang%20and%20Emoticons.md
+        """
+        Replaces slang with the corresponding word.
+        Our slang dictionary is taken from this link:
+        https://github.com/Zenexer/internet-reference/blob/main/Internet%20Slang%20and%20Emoticons.md
+        """
+
         slang_doc = pd.read_csv(UtilityPath.SLANG).set_index('slang')['text'].to_dict()
 
         def _find_slang(text: str) -> str:
+            """
+            Replaces slang with the corresponding word.
+            :param text:
+            :return:
+            """
             new_text = []
             _default_value = "<this-is-default-value>"
 
@@ -339,8 +567,12 @@ class Preprocessing:
 
     @print_func_name
     def fillna(self):
-        self.df["text"] = self.df["text"].filna("<empty-text>")
+        """
+        Fills NaN values with "<empty-text>".
+        :return:
+        """
 
+        self.df["text"] = self.df["text"].filna("<empty-text>")
 
     @print_func_name
     def correct_spacing_indexing(self):
@@ -369,79 +601,6 @@ class Preprocessing:
         self.df.reset_index(inplace=True, drop=True)
 
     @print_func_name
-    def remove_space_between_emoticons(self):
-        """
-        Removes spaces between emoticons (e.g.: ': )' --> ':)').
-        Adds a space between a word and an emoticon (e.g.: 'hello:)' --> 'hello :)')
-        """
-
-        print("Removing space between emoticons...")
-
-        # Getting list of all emoticons
-        emo_list = [el for value in list(EMOTICONS_GLOVE.values()) for el in value]
-
-        # Putting a space between each character in each emoticon
-        emo_with_spaces = "|".join(re.escape(" ".join(emo)) for emo in emo_list)
-
-        # Getting all emoticons that don't contain any alphanumeric character
-        all_non_alpha_emo = "|".join(
-            re.escape(emo)
-            for emo in emo_list
-            if not any(char.isalpha() or char.isdigit() for char in emo)
-        )
-
-        # Removing spaces between emoticons
-        self.df["text"] = self.df["text"].str.replace(
-            emo_with_spaces, lambda t: t.group().replace(" ", ""), regex=True
-        )
-
-        # Adding space between a word and an emoticon
-        self.df["text"] = self.df["text"].str.replace(
-            rf"({all_non_alpha_emo})", r" \1 ", regex=True
-        )
-
-    @print_func_name
-    def emoticons_to_tags(self):
-        # Dictionary like {tag:[list_of_emoticons]}
-        union_re = {}
-        for tag, emo_list in EMOTICONS_GLOVE.items():
-            # Getting emoticons as they are
-            re_emo = "|".join(re.escape(emo) for emo in emo_list)
-            union_re[tag] = re_emo
-
-        # Function to be called for each tweet
-        def _inner(text, _union_re):
-            for tag, union_re in _union_re.items():
-                text = re.sub(union_re, " " + tag + " ", text)
-            return text
-
-        # Applying for each tweet
-        self.df["text"] = self.df["text"].apply(lambda x: _inner(str(x), union_re))
-
-    @print_func_name
-    def hashtags_to_tags(self):
-        """
-        Convert hashtags. (e.g.: #hello ---> <hashtag> hello)
-        """
-
-        print("Converting hashtags to tags...")
-        self.df["text"] = self.df["text"].str.replace(
-            r"#(\S+)", r"<hashtag> \1"
-        )
-
-    @print_func_name
-    def repeat_to_tags(self):
-        """
-        Convert repetitions of '!' or '?' or '.' into tags.
-          (e.g.: ... ---> . <repeat>)
-        """
-
-        print("Converting repetitions of symbols to tags...")
-        self.df["text"] = self.df["text"].str.replace(
-            r"([!?.]){2,}", r"\1 <repeat>"
-        )
-
-    @print_func_name
     def remove_selected_characters(self):
         """
         Remove selected characters from the text.
@@ -451,18 +610,6 @@ class Preprocessing:
         self.df["text"] = self.df["text"].str.replace(
             r'[^a-zA-Z0-9.!\-()]', ' ', regex=True
         )
-
-    @print_func_name
-    def numbers_to_tags(self):
-        """
-        Convert numbers into tags. (e.g.: 34 ---> <number>)
-        Adds a space before and after the tag to ensure it is separated from other text.
-        """
-        # Replace numbers with <number> tag and add spaces around the tag
-        self.df["text"] = self.df["text"].str.replace(
-            r"([-+]?[.\d]*[\d]+[:,.\d]*)", r" <number> ", regex=True
-        )
-
 
     @print_func_name
     def replace_entities_with_tags(self):
