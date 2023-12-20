@@ -46,7 +46,7 @@ def run(args: argparse.Namespace):
         print("Loading pre-trained weights...")
 
     bert = BERT(
-        weight_path=DataPath.BERT_WEIGHT,
+        weight_path=DataPath.BERT_LARGE_WEIGHT,
         submission_path=DataPath.BERT_SUBMISSION,
         is_weight=args.weight
     )

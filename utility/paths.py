@@ -16,6 +16,7 @@ class DataPath:
     BERT_TRAIN = "data/preprocessed/bert/train.csv"
     BERT_TEST = "data/preprocessed/bert/test.csv"
     BERT_WEIGHT = "weights/bert"
+    BERT_LARGE_WEIGHT = "weights/bert-large"
     BERT_SUBMISSION = "submissions/bert"
 
 
