@@ -37,6 +37,8 @@ variation [RoBERTa](https://arxiv.org/abs/1907.11692), to enhance our understand
 tweets. This combination of diverse approaches ensures a comprehensive and
 accurate sentiment analysis of Twitter data.
 
+For more details, read the [report.pdf](./report.pdf)
+
 ## Setup
 
 Make sure to install conda on your machine first. Then, run the following commands to create the environment and install
@@ -70,7 +72,7 @@ files are organized according to this framework.
 
 `weights`: contains the saved weights.
 
-`preprocess.py`: contains the preprocessing pipeline.
+`preprocessing.py`: contains the preprocessing pipeline.
 
 `run.py`: run the model that yields the best submission on AICrowd.
 
@@ -210,6 +212,8 @@ They are structured as followed:
 
 `preprocessing.ipynb`: contains the preprocessing pipeline.
 
+`preprocessing_exploration.ipynb`: contains the data exploration and preprocessing pipeline.
+
 ## Best submissions
 
 Our best submission on AICrowd was a BERT-based model with `bert-large-uncased` variation. After downloading the weights
@@ -217,7 +221,8 @@ and loading the files for generating predictions, it will take roughly an hour t
 
 The best submission can be reproduced by running the command in [Step 6](#step-6-run-the-model). If any problems
 occured, please go
-to [/submissions/bert/test_prediction_BERT_large.csv](/submissions/bert/test_prediction_BERT_large.csv) to download the
+to [/submissions/bert/test_prediction_BERT_large.csv](./submissions/bert/test_predictions_BERT_large.csv) to download
+the
 submission.
 
 ## Contact information
