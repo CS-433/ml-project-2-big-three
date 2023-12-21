@@ -64,7 +64,7 @@ files are organized according to this framework.
 
 `weights`: contains the saved weights.
 
-`preprocess.py`: contains the preprocessing pipeline.
+`preprocessing.py`: contains the preprocessing pipeline.
 
 `run.py`: run the model that yields the best submission on AICrowd.
 
