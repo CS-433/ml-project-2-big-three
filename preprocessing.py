@@ -18,10 +18,10 @@ from utility.paths import UtilityPath
 tqdm.pandas(leave=True, position=0)
 
 # Setup nltk weights
-nltk.download("averaged_perceptron_tagger")
-nltk.download("stopwords")
-nltk.download("wordnet")
-nltk.download("omw-1.4")
+nltk.download("averaged_perceptron_tagger", quiet=True)
+nltk.download("stopwords", quiet=True)
+nltk.download("wordnet", quiet=True)
+nltk.download("omw-1.4", quiet=True)
 
 # Emojis taken from this link: https://en.wikipedia.org/wiki/List_of_emoticons. The tags are from GloVe embedding.
 EMOJI_GLOVE = {

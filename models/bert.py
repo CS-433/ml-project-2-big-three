@@ -21,7 +21,7 @@ class BERT(Model):
                  is_weight: bool = False,
                  seed: int = 42,
                  max_length: int = 128,
-                 pretrained_mode: str = "bert-large-base-uncased"):
+                 pretrained_model: str = "bert-base-uncased"):
         """
         Initialize the BERT model with specified parameters.
 
@@ -44,14 +44,14 @@ class BERT(Model):
         super().__init__(weight_path, submission_path, is_weight, seed)
 
         # Set pretrained tokenizer
-        self.tokenizer = BertTokenizer.from_pretrained(pretrained_mode)
+        self.tokenizer = BertTokenizer.from_pretrained(pretrained_model)
         self.max_length = max_length
 
         # Load models
         if self.is_weight:
             self.model = TFBertForSequenceClassification.from_pretrained(self.weight_path)
         else:
-            self.model = TFBertForSequenceClassification.from_pretrained(pretrained_mode)
+            self.model = TFBertForSequenceClassification.from_pretrained(pretrained_model)
 
     def preprocessing(self, is_train: bool = True):
         """
