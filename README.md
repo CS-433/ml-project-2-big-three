@@ -129,3 +129,48 @@ from [this link](https://drive.google.com/drive/folders/1b9YH1vRdGKUFq0TQNtcKmMR
 
 Weights are essential to give predictions from model without retraining. You can download the weights
 from [this link](https://drive.google.com/drive/folders/1lRFsM6QaWmykkHzVE6jAQDe34fqU-XAK?usp=drive_link)
+
+```
+├── weights
+│   ├── bert
+│   │   ├── config.json
+│   │   └── tf_model.h5
+│   ├── bert-large
+│   │   ├── config.json
+│   │   └── tf_model.h5
+│   ├── gru
+│   │   ├── config.json
+│   │   └── model.keras
+│   ├── gru
+│   └── README.md
+```
+
+**Required space**: 2.14Gb for total weights
+
+### Step 5. Run the model
+
+[`run.py`](run.py) is the main script to load weights and run the model. You can run it with the following command:
+
+```bash
+python3 run.py -w
+```
+
+This will run the pretrained model and load the best weight for the model. You can also run the model without loading
+the weights by running:
+
+```bash
+python3 run.py
+```
+
+A more detailed help can be found by running:
+
+```bash
+python3 run.py -h
+```
+
+Submissions will be saved in the [`submissions`](submissions) folder.
+
+## Best submissions
+
+Our best submission on AICrowd was a BERT-based model with `bert-large-uncased` variation. After downloading the weights
+and loading the files for generating predictions, it will take roughly an hour to run on a normal laptop.
