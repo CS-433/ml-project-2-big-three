@@ -35,8 +35,7 @@ Make sure to install conda on your machine first. Then, run the following comman
 packages:
 
 ```bash
-conda list --export > requirements.txt
-conda env create -f my_environment.yml
+conda env create -f environment.yml
 conda activate tweet-sentiment
 ```
 
