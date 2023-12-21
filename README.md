@@ -15,7 +15,9 @@
   <a href="#setup-">Setup</a> •
   <a href="#project-structure-">Project structures</a> •
   <a href="#gathering-data-">Gathering data</a> •
-  <a href="#best-submissions-">Best submissions</a>
+  <a href="#notebooks-">Notebooks</a> •
+  <a href="#best-submissions-">Best submissions</a> •
+  <a href="#contact-information-">Contact information</a> •
 </p>
 
 ## Introduction
@@ -24,9 +26,10 @@ This project aims to classify tweets as negative (-1) or non-negative (1) using 
 learning techniques. We implement various methods to represent tweets (TF-IDF, Glove embeddings). We employed
 traditional machine learning models like Stochastic Gradient Descent (SGD) and Logistic
 Regression for their efficiency in text classification. To capture the nuanced context of language, we integrated the
-Gated Recurrent Unit (GRU), a neural network adept at processing sequential data. Additionally, we utilized BERT (
-Bidirectional Encoder Representations from Transformers), a cutting-edge deep learning model, to enhance our
-understanding of complex language patterns in tweets. This combination of diverse approaches ensures a comprehensive and
+Gated Recurrent Unit (GRU), a neural network adept at processing sequential data. Additionally, we utilized a
+transformer-based model [BERT](https://arxiv.org/abs/1810.04805) and its
+variation [RoBERTa](https://arxiv.org/abs/1907.11692), to enhance our understanding of complex language patterns in
+tweets. This combination of diverse approaches ensures a comprehensive and
 accurate sentiment analysis of Twitter data.
 
 ## Setup
@@ -101,7 +104,23 @@ without extracting. Afterward, put it into the data folder.
 │   └── train_pos_full.txt
 ```
 
-### Step 3. Preprocessed data
+### Step 3. Download the Word2Vec embedding
+
+We used Word2Vec embedding from Google. You can download it
+from [Kaggle](https://www.kaggle.com/datasets/adarshsng/googlenewsvectors/), extract and put into `data` folder.
+
+```
+├── data
+│   ├── preprocessed
+│   ...
+│   ├── glove.twitter.27B.100d.txt
+│   ├── GoogleNews-vectors-negative300.bin
+│   └── train_pos_full.txt
+```
+
+**Required space**: 3.64Gb
+
+### Step 4. Preprocessed data
 
 Download the preprocessed data and put it into the data folder. You can download it
 from [this link](https://drive.google.com/drive/folders/1b9YH1vRdGKUFq0TQNtcKmMRG-7D8EfIV?usp=drive_link).
@@ -123,7 +142,7 @@ from [this link](https://drive.google.com/drive/folders/1b9YH1vRdGKUFq0TQNtcKmMR
 │   └── train_pos_full.txt
 ```
 
-### Step 4. Weights
+### Step 5. Weights
 
 Weights are essential to give predictions from model without retraining. You can download the weights
 from [this link](https://drive.google.com/drive/folders/1lRFsM6QaWmykkHzVE6jAQDe34fqU-XAK?usp=drive_link)
@@ -145,7 +164,7 @@ from [this link](https://drive.google.com/drive/folders/1lRFsM6QaWmykkHzVE6jAQDe
 
 **Required space**: 2.14Gb for total weights
 
-### Step 5. Run the model
+### Step 6. Run the model
 
 [`run.py`](run.py) is the main script to load weights and run the model. You can run it with the following command:
 
@@ -166,9 +185,36 @@ A more detailed help can be found by running:
 python3 run.py -h
 ```
 
-Submissions will be saved in the [`submissions`](submissions) folder.
+Submissions will be saved in the [`submissions/bert`](submissions/bert) folder, under the name `
+submission_YYYY-MM-DD_HH:MM:SS.csv`.
+
+## Notebooks
+
+The notebooks are used for data exploration and model training. They are located in the [`notebooks`](notebooks) folder.
+Those notebooks are well-documented and will give relevant information in the processing of finishing this project.
+They are structured as followed:
+
+`Explatory Data Analysis.ipynb`: contains the data exploration and visualization.
+
+`model_BERT.ipynb`: contains the BERT model training.
+
+`model_GRU.ipynb`: contains the GRU model training.
+
+`model_logistic_regression.ipynb`:  contains the logistic regression model training.
+
+`model_RoBERTa.ipynb`: contains the RoBERTa model training.
+
+`model_SGD.ipynb`: contains the SGD model training.
+
+`preprocessing.ipynb`: contains the preprocessing pipeline.
 
 ## Best submissions
 
 Our best submission on AICrowd was a BERT-based model with `bert-large-uncased` variation. After downloading the weights
 and loading the files for generating predictions, it will take roughly an hour to run on a normal laptop.
+
+## Contact information
+
+For help or issues using this repo, please submit a GitHub issue.
+For personal communication related to this project, please contact Ilias Merigh <ilias.merigh@epfl.ch>, Nicolas
+Filimonov <nicolas.filimonov@epfl.ch> or Thai-Nam Hoang <thai.hoang@eplf.ch>.
