@@ -158,7 +158,6 @@ from [this link](https://drive.google.com/drive/folders/1lRFsM6QaWmykkHzVE6jAQDe
 │   ├── gru
 │   │   ├── config.json
 │   │   └── model.keras
-│   ├── gru
 │   └── README.md
 ```
 
