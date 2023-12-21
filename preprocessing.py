@@ -8,7 +8,7 @@ from nltk.corpus import stopwords
 from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 
-from importlib_resources import files
+from importlib.resources import files
 from symspellpy import SymSpell
 import re
 
