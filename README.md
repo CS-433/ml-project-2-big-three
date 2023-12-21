@@ -23,10 +23,15 @@
 ## Introduction
 
 This project aims to classify tweets as negative (-1) or non-negative (1) using a blend of machine learning and deep
-learning techniques. We implement various methods to represent tweets (TF-IDF, Glove embeddings). We employed
-traditional machine learning models like Stochastic Gradient Descent (SGD) and Logistic
-Regression for their efficiency in text classification. To capture the nuanced context of language, we integrated the
-Gated Recurrent Unit (GRU), a neural network adept at processing sequential data. Additionally, we utilized a
+learning techniques. We implement various methods to represent
+tweets ([TF-IDF](https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfVectorizer.html),
+[Glove embeddings](https://nlp.stanford.edu/projects/glove/)). We employed
+traditional machine learning models like Stochastic Gradient
+Descent ([SGD](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html)) and [Logistic
+Regression](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html#sklearn.linear_model.LogisticRegression
+) for their efficiency in text classification. To capture the nuanced context of language, we integrated the
+Gated Recurrent Unit ([GRU](https://www.tensorflow.org/api_docs/python/tf/keras/layers/GRU)), a neural network adept at
+processing sequential data. Additionally, we utilized a
 transformer-based model [BERT](https://arxiv.org/abs/1810.04805) and its
 variation [RoBERTa](https://arxiv.org/abs/1907.11692), to enhance our understanding of complex language patterns in
 tweets. This combination of diverse approaches ensures a comprehensive and
@@ -158,7 +163,6 @@ from [this link](https://drive.google.com/drive/folders/1lRFsM6QaWmykkHzVE6jAQDe
 │   ├── gru
 │   │   ├── config.json
 │   │   └── model.keras
-│   ├── gru
 │   └── README.md
 ```
 
@@ -194,8 +198,6 @@ The notebooks are used for data exploration and model training. They are located
 Those notebooks are well-documented and will give relevant information in the processing of finishing this project.
 They are structured as followed:
 
-`Explatory Data Analysis.ipynb`: contains the data exploration and visualization.
-
 `model_BERT.ipynb`: contains the BERT model training.
 
 `model_GRU.ipynb`: contains the GRU model training.
@@ -212,6 +214,11 @@ They are structured as followed:
 
 Our best submission on AICrowd was a BERT-based model with `bert-large-uncased` variation. After downloading the weights
 and loading the files for generating predictions, it will take roughly an hour to run on a normal laptop.
+
+The best submission can be reproduced by running the command in [Step 6](#step-6-run-the-model). If any problems
+occured, please go
+to [/submissions/bert/test_prediction_BERT_large.csv](/submissions/bert/test_prediction_BERT_large.csv) to download the
+submission.
 
 ## Contact information
 
