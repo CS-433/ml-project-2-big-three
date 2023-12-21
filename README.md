@@ -15,8 +15,7 @@
   <a href="#setup-">Setup</a> •
   <a href="#project-structure-">Project structures</a> •
   <a href="#gathering-data-">Gathering data</a> •
-  <a href="#timeline-">Timeline</a> •
-  <a href="#team-organization-">Team Organization</a>
+  <a href="#best-submissions-">Best submissions</a>
 </p>
 
 ## Introduction
