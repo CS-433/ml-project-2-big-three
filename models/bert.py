@@ -21,7 +21,7 @@ class BERT(Model):
                  is_weight: bool = False,
                  seed: int = 42,
                  max_length: int = 128,
-                 pretrained_mode: str = "bert-base-uncased"):
+                 pretrained_mode: str = "bert-large-base-uncased"):
         """
         Initialize the BERT model with specified parameters.
 

@@ -117,7 +117,15 @@ from [this link](https://drive.google.com/drive/folders/1b9YH1vRdGKUFq0TQNtcKmMR
 │   │   ├── gru
 │   │   │   ├── test.csv
 │   │   │   ├── train.csv
+│   │   ├── ml
+│   │   │   ├── test.csv
+│   │   │   ├── train.csv
 │   ├── glove.twitter.27B.100d.txt
 │   ...
 │   └── train_pos_full.txt
 ```
+
+### Step 4. Weights
+
+Weights are essential to give predictions from model without retraining. You can download the weights
+from [this link](https://drive.google.com/drive/folders/1lRFsM6QaWmykkHzVE6jAQDe34fqU-XAK?usp=drive_link)

@@ -13,11 +13,15 @@ class DataPath:
     GRU_SUBMISSION = "submissions/gru"
 
     # BERT
-    BERT_TRAIN = "data/preprocessed/bert/train.csv"
-    BERT_TEST = "data/preprocessed/bert/test.csv"
-    BERT_WEIGHT = "weights/bert"
+    BERT_TRAIN = "data/preprocessed/bert-large/train.csv"
+    BERT_TEST = "data/preprocessed/bert-large/test.csv"
+    BERT_WEIGHT = "weights/bert-base"
     BERT_LARGE_WEIGHT = "weights/bert-large"
-    BERT_SUBMISSION = "submissions/bert"
+    BERT_SUBMISSION = "submissions/bert-large"
+
+    # For other ML models
+    ML_TRAIN = "data/preprocessed/ml/train.csv"
+    ML_TEST = "data/preprocessed/ml/test.csv"
 
 
 class UtilityPath:
